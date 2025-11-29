@@ -18,6 +18,7 @@ import Link from 'next/link';
 const pageTitles: { [key: string]: string } = {
   '/': 'Dashboard',
   '/find-jobs': 'Cari Pekerjaan',
+  '/applied-jobs': 'Pekerjaan Saya',
   '/my-jobs': 'Lowongan Saya',
   '/profile': 'Profil Pengguna',
 };

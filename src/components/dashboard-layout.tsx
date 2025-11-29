@@ -8,6 +8,7 @@ import {
   LayoutDashboard,
   Search,
   User,
+  CheckSquare,
 } from 'lucide-react';
 
 import {
@@ -25,6 +26,7 @@ import { Header } from '@/components/header';
 const navItems = [
   { href: '/', label: 'Dashboard', icon: LayoutDashboard },
   { href: '/find-jobs', label: 'Cari Pekerjaan', icon: Search },
+  { href: '/applied-jobs', label: 'Pekerjaan Saya', icon: CheckSquare },
   { href: '/my-jobs', label: 'Lowongan Saya', icon: Briefcase },
   { href: '/profile', label: 'Profil', icon: User },
 ];

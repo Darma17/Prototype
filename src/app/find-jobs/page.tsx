@@ -10,6 +10,8 @@ import { Separator } from '@/components/ui/separator';
 import { Clock, MapPin, Sparkles, Zap, Briefcase } from 'lucide-react';
 import { mockJobs, type Job } from '@/lib/mock-data';
 import Image from 'next/image';
+import { useToast } from '@/hooks/use-toast';
+import { useRouter } from 'next/navigation';
 
 const GoOnlineCard = ({ onMatch }: { onMatch: (job: Job) => void }) => {
   const [isSearching, setIsSearching] = useState(false);
@@ -65,7 +67,7 @@ const GoOnlineCard = ({ onMatch }: { onMatch: (job: Job) => void }) => {
   );
 };
 
-const MatchedJobCard = ({ job, onDecline }: { job: Job; onDecline: () => void }) => (
+const MatchedJobCard = ({ job, onDecline, onAccept }: { job: Job; onDecline: () => void; onAccept: (job: Job) => void }) => (
   <motion.div initial={{ opacity: 0, y: 50 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, scale: 0.9 }}>
     <Card className="border-2 border-accent shadow-lg shadow-accent/20">
       <CardHeader>
@@ -102,14 +104,14 @@ const MatchedJobCard = ({ job, onDecline }: { job: Job; onDecline: () => void })
         <Button variant="outline" onClick={onDecline}>
           Tolak
         </Button>
-        <Button className="bg-primary hover:bg-primary/90 text-primary-foreground">Terima Pekerjaan</Button>
+        <Button onClick={() => onAccept(job)} className="bg-primary hover:bg-primary/90 text-primary-foreground">Terima Pekerjaan</Button>
       </CardFooter>
     </Card>
   </motion.div>
 );
 
 
-const JobCard = ({ job }: { job: Job }) => (
+const JobCard = ({ job, onApply, applied }: { job: Job, onApply: (job: Job) => void, applied: boolean }) => (
   <Card className="hover:shadow-md transition-shadow duration-300">
     <CardHeader>
         <div className="flex justify-between items-start">
@@ -142,19 +144,60 @@ const JobCard = ({ job }: { job: Job }) => (
         </div>
     </CardContent>
     <CardFooter>
-        <Button className="w-full bg-primary/90 hover:bg-primary text-primary-foreground">Lamar Sekarang</Button>
+        <Button onClick={() => onApply(job)} disabled={applied} className="w-full bg-primary/90 hover:bg-primary text-primary-foreground">
+            {applied ? 'Sudah Diterima' : 'Lamar Sekarang'}
+        </Button>
     </CardFooter>
   </Card>
 );
 
 export default function FindJobsPage() {
   const [matchedJob, setMatchedJob] = useState<Job | null>(null);
+  const [appliedJobs, setAppliedJobs] = useState<Set<string>>(new Set());
+  const { toast } = useToast();
+  const router = useRouter();
+
+  useEffect(() => {
+    const jobs = JSON.parse(localStorage.getItem('appliedJobs') || '[]');
+    setAppliedJobs(new Set(jobs.map((j: Job) => j.id)));
+  }, []);
+
+  const handleAcceptJob = (job: Job) => {
+    const currentJobs: Job[] = JSON.parse(localStorage.getItem('appliedJobs') || '[]');
+    if (currentJobs.find(j => j.id === job.id)) {
+        toast({
+            title: 'Pekerjaan Sudah Diterima',
+            description: `${job.title} sudah ada di daftar pekerjaan Anda.`,
+            variant: 'default',
+        });
+        return;
+    }
+    
+    const updatedJobs = [...currentJobs, job];
+    localStorage.setItem('appliedJobs', JSON.stringify(updatedJobs));
+    setAppliedJobs(new Set(updatedJobs.map(j => j.id)));
+    setMatchedJob(null);
+
+    toast({
+        title: 'Pekerjaan Diterima!',
+        description: `${job.title} telah ditambahkan ke pekerjaan Anda.`,
+        action: (
+            <Button variant="outline" size="sm" onClick={() => router.push('/applied-jobs')}>
+                Lihat Pekerjaan Saya
+            </Button>
+        ),
+    });
+  };
 
   return (
     <div className="flex flex-col gap-8">
       <AnimatePresence mode="wait">
         {matchedJob ? (
-          <MatchedJobCard job={matchedJob} onDecline={() => setMatchedJob(null)} />
+          <MatchedJobCard 
+            job={matchedJob} 
+            onDecline={() => setMatchedJob(null)}
+            onAccept={handleAcceptJob}
+          />
         ) : (
           <GoOnlineCard onMatch={setMatchedJob} />
         )}
@@ -169,7 +212,12 @@ export default function FindJobsPage() {
         </h2>
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
           {mockJobs.map((job) => (
-            <JobCard key={job.id} job={job} />
+            <JobCard 
+                key={job.id} 
+                job={job} 
+                onApply={handleAcceptJob} 
+                applied={appliedJobs.has(job.id)}
+            />
           ))}
         </div>
       </div>
